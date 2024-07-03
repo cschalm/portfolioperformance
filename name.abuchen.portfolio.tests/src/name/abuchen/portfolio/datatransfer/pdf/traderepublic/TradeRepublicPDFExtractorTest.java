@@ -735,7 +735,7 @@ public class TradeRepublicPDFExtractorTest
         // check security
         assertThat(results, hasItem(security( //
                         hasIsin("DE000SQ6QKU9"), hasWkn(null), hasTicker(null), //
-                        hasName("Société Générale Effekten GmbH MiniL O.End CBOE VIX 11,49"), //
+                        hasName("Société Générale Effekten GmbH MiniL O.End"), //
                         hasCurrencyCode("EUR"))));
 
         // check buy sell transaction
@@ -1882,6 +1882,43 @@ public class TradeRepublicPDFExtractorTest
     }
 
     @Test
+    public void testKontoauszug14()
+    {
+        TradeRepublicPDFExtractor extractor = new TradeRepublicPDFExtractor(new Client());
+
+        List<Exception> errors = new ArrayList<>();
+
+        List<Item> results = extractor.extract(PDFInputFile.loadTestCase(getClass(), "Kontoauszug14.txt"), errors);
+
+        assertThat(errors, empty());
+        assertThat(countSecurities(results), is(0L));
+        assertThat(countBuySell(results), is(0L));
+        assertThat(countAccountTransactions(results), is(5L));
+        assertThat(results.size(), is(5));
+        new AssertImportActions().check(results, CurrencyUnit.EUR);
+
+        // assert transaction
+        assertThat(results, hasItem(deposit(hasDate("2024-06-03"), hasAmount("EUR", 5.18), //
+                        hasSource("Kontoauszug14.txt"), hasNote(null))));
+
+        // assert transaction
+        assertThat(results, hasItem(removal(hasDate("2024-06-09"), hasAmount("EUR", 33.21), //
+                        hasSource("Kontoauszug14.txt"), hasNote("Lidl sagt Danke"))));
+
+        // assert transaction
+        assertThat(results, hasItem(removal(hasDate("2024-06-14"), hasAmount("EUR", 6500.00), //
+                        hasSource("Kontoauszug14.txt"), hasNote(null))));
+
+        // assert transaction
+        assertThat(results, hasItem(taxes(hasDate("2024-06-14"), hasAmount("EUR", 0.01), //
+                        hasSource("Kontoauszug14.txt"), hasNote(null))));
+
+        // assert transaction
+        assertThat(results, hasItem(taxRefund(hasDate("2024-06-14"), hasAmount("EUR", 80.62), //
+                        hasSource("Kontoauszug14.txt"), hasNote(null))));
+    }
+
+    @Test
     public void testSteuerabrechnung01()
     {
         TradeRepublicPDFExtractor extractor = new TradeRepublicPDFExtractor(new Client());
@@ -2491,7 +2528,7 @@ public class TradeRepublicPDFExtractorTest
         // check security
         assertThat(results, hasItem(security( //
                         hasIsin("DE000SQ6QKU9"), hasWkn(null), hasTicker(null), //
-                        hasName("Société Générale Effekten GmbH MiniL O.End CBOE VIX 11,49"), //
+                        hasName("Société Générale Effekten GmbH MiniL O.End"), //
                         hasCurrencyCode("EUR"))));
 
         // check buy sell transaction
@@ -2501,6 +2538,37 @@ public class TradeRepublicPDFExtractorTest
                         hasNote("Order: 1778-101b | Execution: eiX5-F5D7"), //
                         hasAmount("EUR", 433.14), hasGrossValue("EUR", 434.14), //
                         hasTaxes("EUR", 0.00), hasFees("EUR", 1.00))));
+    }
+
+    @Test
+    public void testRepayment01()
+    {
+        TradeRepublicPDFExtractor extractor = new TradeRepublicPDFExtractor(new Client());
+
+        List<Exception> errors = new ArrayList<>();
+
+        List<Item> results = extractor.extract(PDFInputFile.loadTestCase(getClass(), "Repayment01.txt"), errors);
+
+        assertThat(errors, empty());
+        assertThat(countSecurities(results), is(1L));
+        assertThat(countBuySell(results), is(1L));
+        assertThat(countAccountTransactions(results), is(0L));
+        assertThat(results.size(), is(2));
+        new AssertImportActions().check(results, CurrencyUnit.EUR);
+
+        // check security
+        assertThat(results, hasItem(security( //
+                        hasIsin("DE000SQ728J8"), hasWkn(null), hasTicker(null), //
+                        hasName("Société Générale Effekten GmbH MiniL O.End"), //
+                        hasCurrencyCode("EUR"))));
+
+        // check buy sell transaction
+        assertThat(results, hasItem(sale( //
+                        hasDate("2023-07-06T00:00"), hasShares(500.00), //
+                        hasSource("Repayment01.txt"), //
+                        hasNote(null), //
+                        hasAmount("EUR", 35.00), hasGrossValue("EUR", 35.00), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
     }
 
     @Test
@@ -5514,17 +5582,27 @@ public class TradeRepublicPDFExtractorTest
         assertThat(errors, empty());
         assertThat(countSecurities(results), is(0L));
         assertThat(countBuySell(results), is(0L));
-        assertThat(countAccountTransactions(results), is(1L));
-        assertThat(results.size(), is(1));
+        assertThat(countAccountTransactions(results), is(2L));
+        assertThat(results.size(), is(2));
         new AssertImportActions().check(results, CurrencyUnit.EUR);
 
         // check interest transaction
         assertThat(results, hasItem(interest( //
                         hasDate("2023-02-01T00:00"), //
                         hasSource("Zinsabrechnung01.txt"), //
-                        hasNote("2,00%"), //
+                        hasNote("Zinsen (2,00%)"), //
                         hasAmount("EUR", 0.88), hasGrossValue("EUR", 0.88), //
                         hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check taxes transaction
+        assertThat(results, hasItem(withFailureMessage( //
+                        Messages.MsgErrorTransactionTypeNotSupported, //
+                        taxes( //
+                                        hasDate("2023-02-01T00:00"), //
+                                        hasSource("Zinsabrechnung01.txt"), //
+                                        hasNote(null), //
+                                        hasAmount("EUR", 0.00), hasGrossValue("EUR", 0.00), //
+                                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00)))));
     }
 
     @Test
@@ -5540,17 +5618,27 @@ public class TradeRepublicPDFExtractorTest
         assertThat(errors, empty());
         assertThat(countSecurities(results), is(0L));
         assertThat(countBuySell(results), is(0L));
-        assertThat(countAccountTransactions(results), is(1L));
-        assertThat(results.size(), is(1));
+        assertThat(countAccountTransactions(results), is(2L));
+        assertThat(results.size(), is(2));
         new AssertImportActions().check(results, CurrencyUnit.EUR);
 
         // check interest transaction
         assertThat(results, hasItem(interest( //
                         hasDate("2023-02-01T00:00"), //
                         hasSource("Zinsabrechnung02.txt"), //
-                        hasNote("2,00%"), //
+                        hasNote("Zinsen (2,00%)"), //
                         hasAmount("EUR", 2.58), hasGrossValue("EUR", 2.58), //
                         hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check taxes transaction
+        assertThat(results, hasItem(withFailureMessage( //
+                        Messages.MsgErrorTransactionTypeNotSupported, //
+                        taxes( //
+                                        hasDate("2023-02-01T00:00"), //
+                                        hasSource("Zinsabrechnung02.txt"), //
+                                        hasNote(null), //
+                                        hasAmount("EUR", 0.00), hasGrossValue("EUR", 0.00), //
+                                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00)))));
     }
 
     @Test
@@ -5566,17 +5654,83 @@ public class TradeRepublicPDFExtractorTest
         assertThat(errors, empty());
         assertThat(countSecurities(results), is(0L));
         assertThat(countBuySell(results), is(0L));
-        assertThat(countAccountTransactions(results), is(1L));
-        assertThat(results.size(), is(1));
+        assertThat(countAccountTransactions(results), is(2L));
+        assertThat(results.size(), is(2));
         new AssertImportActions().check(results, CurrencyUnit.EUR);
 
         // check interest transaction
         assertThat(results, hasItem(interest( //
                         hasDate("2023-11-01T00:00"), //
                         hasSource("Zinsabrechnung03.txt"), //
-                        hasNote("01.10.2023 - 31.10.2023 (4,00%)"), //
-                        hasAmount("EUR", 112.40), hasGrossValue("EUR", 152.67), //
-                        hasTaxes("EUR", 38.17 + 2.10), hasFees("EUR", 0.00))));
+                        hasNote("Zinsen 01.10.2023 - 31.10.2023 (4,00%)"), //
+                        hasAmount("EUR", 152.67), hasGrossValue("EUR", 152.67), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check taxes transaction
+        assertThat(results, hasItem(taxes( //
+                        hasDate("2023-11-01T00:00"), //
+                        hasSource("Zinsabrechnung03.txt"), //
+                        hasNote(null), //
+                        hasAmount("EUR", 152.67 - 112.40), hasGrossValue("EUR", 152.67 - 112.40), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+    }
+
+    @Test
+    public void testZinsabrechnung04()
+    {
+        TradeRepublicPDFExtractor extractor = new TradeRepublicPDFExtractor(new Client());
+
+        List<Exception> errors = new ArrayList<>();
+
+        List<Item> results = extractor.extract(PDFInputFile.loadTestCase(getClass(), "Zinsabrechnung04.txt"),
+                        errors);
+
+        assertThat(errors, empty());
+        assertThat(countSecurities(results), is(0L));
+        assertThat(countBuySell(results), is(0L));
+        assertThat(countAccountTransactions(results), is(5L));
+        assertThat(results.size(), is(5));
+        new AssertImportActions().check(results, CurrencyUnit.EUR);
+
+        // check interest transaction
+        assertThat(results, hasItem(interest( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("Zinsabrechnung04.txt"), //
+                        hasNote("Zinsen 01.06.2024 - 11.06.2024 (4,00%)"), //
+                        hasAmount("EUR", 61.11), hasGrossValue("EUR", 61.11), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check interest transaction
+        assertThat(results, hasItem(interest( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("Zinsabrechnung04.txt"), //
+                        hasNote("Zinsen 12.06.2024 - 30.06.2024 (3,75%)"), //
+                        hasAmount("EUR", 99.39), hasGrossValue("EUR", 99.39), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check interest transaction
+        assertThat(results, hasItem(interest( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("Zinsabrechnung04.txt"), //
+                        hasNote("Dividende 26.06.2024 - 30.06.2024 (3,75%)"), //
+                        hasAmount("EUR", 3.76), hasGrossValue("EUR", 3.76), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check taxes transaction
+        assertThat(results, hasItem(taxes( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("Zinsabrechnung04.txt"), //
+                        hasNote(null), //
+                        hasAmount("EUR", 160.50 - 118.17), hasGrossValue("EUR", 160.50 - 118.17), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check taxes transaction
+        assertThat(results, hasItem(taxes( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("Zinsabrechnung04.txt"), //
+                        hasNote(null), //
+                        hasAmount("EUR", 3.76 - 2.77), hasGrossValue("EUR", 3.76 - 2.77), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
     }
 
     @Test
@@ -5599,9 +5753,9 @@ public class TradeRepublicPDFExtractorTest
 
         // check interest transaction
         assertThat(results, hasItem(interest( //
-                        hasDate("2023-06-01"), //
+                        hasDate("2023-06-01T00:00"), //
                         hasSource("RescontoInteressiMaturati01.txt"), //
-                        hasNote("2,00%"), //
+                        hasNote("Interessi (2,00%)"), //
                         hasAmount("EUR", 0.12), hasGrossValue("EUR", 0.12), //
                         hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
     }
@@ -5626,10 +5780,45 @@ public class TradeRepublicPDFExtractorTest
 
         // check interest transaction
         assertThat(results, hasItem(interest( //
-                        hasDate("2023-10-02"), //
+                        hasDate("2023-10-02T00:00"), //
                         hasSource("InterestInvoice01.txt"), //
-                        hasNote("2,00%"), //
+                        hasNote("Interest (2,00%)"), //
                         hasAmount("EUR", 1.47), hasGrossValue("EUR", 1.47), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+    }
+
+    @Test
+    public void testInterestInvoice02()
+    {
+        TradeRepublicPDFExtractor extractor = new TradeRepublicPDFExtractor(new Client());
+
+        List<Exception> errors = new ArrayList<>();
+
+        List<Item> results = extractor.extract(PDFInputFile.loadTestCase(getClass(), "InterestInvoice02.txt"),
+                        errors);
+
+        assertThat(errors, empty());
+        assertThat(errors, empty());
+        assertThat(countSecurities(results), is(0L));
+        assertThat(countBuySell(results), is(0L));
+        assertThat(countAccountTransactions(results), is(2L));
+        assertThat(results.size(), is(2));
+        new AssertImportActions().check(results, CurrencyUnit.EUR);
+
+        // check interest transaction
+        assertThat(results, hasItem(interest( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("InterestInvoice02.txt"), //
+                        hasNote("Interest 01.06.2024 - 11.06.2024 (4,00%)"), //
+                        hasAmount("EUR", 7.10), hasGrossValue("EUR", 7.10), //
+                        hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
+
+        // check interest transaction
+        assertThat(results, hasItem(interest( //
+                        hasDate("2024-07-01T00:00"), //
+                        hasSource("InterestInvoice02.txt"), //
+                        hasNote("Interest 12.06.2024 - 30.06.2024 (3,75%)"), //
+                        hasAmount("EUR", 11.56), hasGrossValue("EUR", 11.56), //
                         hasTaxes("EUR", 0.00), hasFees("EUR", 0.00))));
     }
 }
